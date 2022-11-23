@@ -1,9 +1,9 @@
 [submodule "external/accel-macros"]
 	path = external/accel-macros
-	url = https://github.com/acceleration3/accel-macros
+	url = https://www.github.com/acceleration3/accel-macros
 [submodule "external/accel-flagset"]
 	path = external/accel-flagset
-	url = https://github.com/acceleration3/accel-flagset
+	url = https://www.github.com/acceleration3/accel-flagset
 [submodule "external/accel-math"]
 	path = external/accel-math
 	url = https://www.github.com/acceleration3/accel-math

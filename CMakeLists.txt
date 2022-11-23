@@ -9,7 +9,7 @@ set(CMAKE_CXX_STANDARD 17)
 
 add_subdirectory(external)
 
-file(GLOB SRC_FILES "src/*.cpp" "include/accel/*.hpp")
+file(GLOB_RECURSE SRC_FILES "src/*.cpp" "include/accel/*.hpp")
 
 add_library(accel-window-static STATIC ${SRC_FILES})
 target_include_directories(accel-window-static PUBLIC "include/" ${ADDITIONAL_INCLUDES})
