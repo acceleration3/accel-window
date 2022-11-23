@@ -85,36 +85,36 @@ namespace accel
 	public:
 		struct impl;
 
-		window(const window_create_params& params);
-		~window();
+		ACC_EXPORT window(const window_create_params& params);
+		ACC_EXPORT ~window();
 
-		size2u client_size() const;
-		size2u size() const;
-		rectanglei rect() const;
-		point2i position() const;
-		bool closing() const;
-		bool resizable() const;
-		bool undecorated() const;
-		bool hidden() const;
-		bool hide_mouse() const;
-		bool trap_mouse() const;
-		flagset<window_style_bits> style() const;
-		std::string title() const;
+		ACC_EXPORT size2u client_size() const;
+		ACC_EXPORT size2u size() const;
+		ACC_EXPORT rectanglei rect() const;
+		ACC_EXPORT point2i position() const;
+		ACC_EXPORT bool closing() const;
+		ACC_EXPORT bool resizable() const;
+		ACC_EXPORT bool undecorated() const;
+		ACC_EXPORT bool hidden() const;
+		ACC_EXPORT bool hide_mouse() const;
+		ACC_EXPORT bool trap_mouse() const;
+		ACC_EXPORT flagset<window_style_bits> style() const;
+		ACC_EXPORT std::string title() const;
 
-		void set_title(std::string_view title);
-		void set_position(const point2i& position);
-		void set_size(const size2u& size);
-		void set_client_size(const size2u& size);
-		void set_rect(const rectanglei& rect);
-		void set_resizable(bool state);
-		void set_undecorated(bool state);
-		void set_hidden(bool state);
-		void set_hide_mouse(bool state);
-		void set_trap_mouse(bool state);
-		void set_style(const flagset<window_style_bits>& style);
+		ACC_EXPORT void set_title(std::string_view title);
+		ACC_EXPORT void set_position(const point2i& position);
+		ACC_EXPORT void set_size(const size2u& size);
+		ACC_EXPORT void set_client_size(const size2u& size);
+		ACC_EXPORT void set_rect(const rectanglei& rect);
+		ACC_EXPORT void set_resizable(bool state);
+		ACC_EXPORT void set_undecorated(bool state);
+		ACC_EXPORT void set_hidden(bool state);
+		ACC_EXPORT void set_hide_mouse(bool state);
+		ACC_EXPORT void set_trap_mouse(bool state);
+		ACC_EXPORT void set_style(const flagset<window_style_bits>& style);
 
-		void pump_events();
-		std::vector<any_event> poll_events();
+		ACC_EXPORT void pump_events();
+		ACC_EXPORT std::vector<any_event> poll_events();
 
 		template<typename T> T* platform_handle() const { return reinterpret_cast<T*>(handle()); }
 
