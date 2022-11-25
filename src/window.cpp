@@ -7,3 +7,9 @@
 #else
 	#error "No window implementation for the current platform."
 #endif
+
+namespace accel
+{
+	window::window(window&&) = default;
+	window& window::operator=(window&&) = default;
+}

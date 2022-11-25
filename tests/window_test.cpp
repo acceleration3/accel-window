@@ -13,10 +13,12 @@ int main(int argc, char* argv[])
     window wnd(params);
     wnd.set_client_size({ 800u, 600u });
 
-    while (!wnd.closing())
+    window better_wnd(std::move(wnd));
+
+    while (!better_wnd.closing())
     {
-        wnd.pump_events();
-        auto events = wnd.poll_events();
+        better_wnd.pump_events();
+        auto events = better_wnd.poll_events();
         for (const auto& event : events)
         {
             struct visitor
