@@ -122,7 +122,7 @@ namespace accel
 		ACC_EXPORT void pump_events();
 		ACC_EXPORT std::vector<any_event> poll_events();
 
-		template<typename T> T* platform_handle() const { return reinterpret_cast<T*>(handle()); }
+		template<typename T> T platform_handle() const { return reinterpret_cast<T>(handle()); }
 
 	private:
 		std::unique_ptr<impl> m_impl;
