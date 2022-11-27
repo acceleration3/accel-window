@@ -125,8 +125,8 @@ namespace accel
 		template<typename T> T platform_handle() const { return reinterpret_cast<T>(handle()); }
 
 	private:
-		std::unique_ptr<impl> m_impl;
-		void* handle() const;
+		std::unique_ptr<impl> m_impl;		
+		ACC_EXPORT void* handle() const;
 	};
 }
 
