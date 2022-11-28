@@ -14,7 +14,6 @@ namespace accel
 {
 	struct window::impl
 	{
-        window& wnd;
 		HWND hwnd;
         bool closing;
         flagset<window_style_bits> style;
@@ -22,8 +21,7 @@ namespace accel
         point2i last_position;
         int scroll_amount;
 
-        impl(window& wnd) : 
-            wnd(wnd),
+        impl() : 
             hwnd(nullptr), 
             closing(false),
             style(),
@@ -259,7 +257,7 @@ namespace accel
     }
 
 	window::window(const window_create_params& params) :
-        m_impl(std::make_unique<impl>(*this))
+        m_impl(std::make_unique<impl>())
 	{
         static HINSTANCE hinstance = GetModuleHandle(nullptr);
 		static bool initialized = false;
@@ -294,7 +292,8 @@ namespace accel
 
 	window::~window()
 	{
-        DestroyWindow(m_impl->hwnd);
+        if (m_impl && m_impl->hwnd)
+            DestroyWindow(m_impl->hwnd);
 	}
 
 	size2u window::client_size() const
