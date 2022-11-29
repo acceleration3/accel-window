@@ -8,7 +8,7 @@ int main(int argc, char* argv[])
 {
     window_create_params params;
     params.title = u8"日本語";
-    params.style = window_style_bits::trap_mouse;
+    //params.style = window_style_bits::resizable;
 
     window wnd(params);
     wnd.set_client_size({ 800u, 600u });

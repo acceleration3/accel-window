@@ -172,7 +172,7 @@ LRESULT PrepareSizeMove(HWND hwnd, WPARAM action, DWORD dwPos)
     if(!IsWindowVisible(hwnd))
         return 0;
     /* can't resize a window without the resizing border */
-    if((action & 0xfff0) == SC_MOVE && !(winfo.dwStyle & WS_SIZEBOX))
+    if((action & 0xfff0) == SC_SIZE && !(winfo.dwStyle & WS_SIZEBOX))
         return 0;
 
     /*
