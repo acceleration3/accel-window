@@ -537,9 +537,12 @@ BOOLEAN SizingCheck(const MSG *lpmsg)
         QueryPerformanceCounter(&pfBegin);
         #endif
 
+        DWORD dwStyle = GetWindowLongAW(sizemove->hwnd, GWL_STYLE);
         if(sizemove->grab == LSM_CAPTION)
         {
-            SnapCheck(pt, sizemove);
+            if (dwStyle & WS_THICKFRAME)
+                SnapCheck(pt, sizemove);
+
             OffsetRect(&sizemove->rcWin, dx, dy);
         }
 		else
