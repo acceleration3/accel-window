@@ -2,7 +2,6 @@
 #include <algorithm>
 
 #define UNICODE
-#define NOMINMAX
 #include <Windows.h>
 #include <windowsx.h>
 
@@ -306,8 +305,8 @@ namespace accel
 	size2u window::size() const
 	{
 		RECT rect = get_real_rect(m_impl->hwnd);
-        auto width = std::max(rect.right - rect.left, LONG(0));
-        auto height = std::max(rect.bottom - rect.top, LONG(0));
+        auto width = (std::max)(rect.right - rect.left, LONG(0));
+        auto height = (std::max)(rect.bottom - rect.top, LONG(0));
         return size2u(static_cast<unsigned>(width), static_cast<unsigned>(height));
 	}
 

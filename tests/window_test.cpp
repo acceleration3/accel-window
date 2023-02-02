@@ -8,17 +8,15 @@ int main(int argc, char* argv[])
 {
     window_create_params params;
     params.title = u8"日本語";
-    //params.style = window_style_bits::resizable;
+    params.style = window_style_bits::resizable;
 
     window wnd(params);
     wnd.set_client_size({ 800u, 600u });
 
-    window better_wnd(std::move(wnd));
-
-    while (!better_wnd.closing())
+    while (!wnd.closing())
     {
-        better_wnd.pump_events();
-        auto events = better_wnd.poll_events();
+        wnd.pump_events();
+        auto events = wnd.poll_events();
         for (const auto& event : events)
         {
             struct visitor

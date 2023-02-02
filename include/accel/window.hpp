@@ -88,8 +88,8 @@ namespace accel
 		ACC_EXPORT window(const window_create_params& params);
 		ACC_EXPORT ~window();
 
-		ACC_EXPORT window(const window&) = delete;
-		ACC_EXPORT window& operator=(const window&) = delete;
+		window(const window&) = delete;
+		window& operator=(const window&) = delete;
 
 		ACC_EXPORT window(window&&);
 		ACC_EXPORT window& operator=(window&&);
