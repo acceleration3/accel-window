@@ -1,0 +1,89 @@
+#ifndef ACCEL_WINDOW_HEADER
+#define ACCEL_WINDOW_HEADER
+
+#include <cstdint>
+
+#include <string>
+#include <memory>
+#include <vector>
+#include <variant>
+
+#include <accel/macros>
+#include <accel/flagset>
+#include <accel/math>
+
+namespace accel
+{
+	enum class mouse_buttons
+	{
+		left,
+		middle,
+		right,
+		backwards,
+		forwards
+	};
+
+	struct mouse_click_event
+	{
+		bool is_mouse_down;
+		mouse_buttons button;
+		point2i position;
+	};
+
+	struct mouse_move_event
+	{
+		point2i position;
+	};
+
+	struct mouse_scroll_event
+	{
+		point2i position;
+		int scroll_lines;
+	};
+
+	struct key_event
+	{
+		bool is_key_down;
+		int keycode;
+		int repeat;
+	};
+
+	struct resize_event
+	{
+		size2u size;
+		size2u client_size;
+	};
+
+	using any_event = std::variant<
+		mouse_click_event,
+		mouse_move_event,
+		mouse_scroll_event,
+		key_event,
+		resize_event
+	>;
+
+	enum class window_style_bits
+	{
+		resizable,
+		undecorated,
+		hidden,
+		hide_mouse,
+		trap_mouse,
+		_
+	};
+
+	struct window_create_params
+	{
+		std::string title;
+		size2u size;
+		flagset<window_style_bits> style;
+	};
+}
+
+#ifdef PLATFORM_WINDOWS
+	#include "impls/win32_window.inl"
+#else
+	#error "No window implementation for this platform."
+#endif
+
+#endif

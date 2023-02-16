@@ -6,7 +6,7 @@ function(add_accel_module name)
     else()
         FetchContent_Declare(
             ${name}
-            GIT_REPOSITORY "https://www.github.com/acceleration3/${name}.git"
+            GIT_REPOSITORY "https://www.github.com/ootbgames/${name}.git"
             GIT_TAG "master"
         )
         FetchContent_MakeAvailable(${name})

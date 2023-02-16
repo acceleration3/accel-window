@@ -1,6 +1,6 @@
 ﻿#include <iostream>
 
-#include <accel/window.hpp>
+#include <accel/window>
 
 using namespace accel;
 
@@ -9,9 +9,8 @@ int main(int argc, char* argv[])
     window_create_params params;
     params.title = u8"日本語";
     params.style = window_style_bits::resizable;
-
+    params.size = { 800u, 600u };
     window wnd(params);
-    wnd.set_client_size({ 800u, 600u });
 
     while (!wnd.closing())
     {
@@ -36,6 +35,6 @@ int main(int argc, char* argv[])
             std::visit(visitor{}, event);
         }
     }
-
+    
     return 0;
 }
