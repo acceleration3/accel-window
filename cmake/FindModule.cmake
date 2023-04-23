@@ -1,11 +1,9 @@
 include(FetchContent)
 
 function(add_accel_module name)
-    message("Trying to find: ${ACCEL_MODULES_FOLDER}/${name}")
     if(NOT TARGET ${name})
         if(EXISTS "${ACCEL_MODULES_FOLDER}/${name}")
-            add_subdirectory("${ACCEL_MODULES_FOLDER}/${name}" )
-            message("Found")
+            add_subdirectory("${ACCEL_MODULES_FOLDER}/${name}")
         else()
             message("Not found, downloading.")
             FetchContent_Declare(
