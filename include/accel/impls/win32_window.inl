@@ -134,14 +134,14 @@ namespace accel
         window(window&&) = default;
         window& operator=(window&&) = default;
 
-        size2u client_size() const
+        size2u get_client_size() const
         {
             RECT rect;
             GetClientRect(m_hwnd, &rect);
             return size2u(static_cast<unsigned>(rect.right - rect.left), static_cast<unsigned>(rect.bottom - rect.top));
         }
 
-        size2u size() const
+        size2u get_size() const
         {
             RECT rect = details::get_real_rect(m_hwnd);
             auto width = (std::max)(rect.right - rect.left, LONG(0));
@@ -149,27 +149,27 @@ namespace accel
             return size2u(static_cast<unsigned>(width), static_cast<unsigned>(height));
         }
 
-        rectanglei rect() const
+        rectanglei get_rect() const
         {
             RECT rect = details::get_real_rect(m_hwnd);
             return rectanglei(rect.top, rect.left, rect.bottom, rect.right);
         }
 
-        point2i position() const
+        point2i get_position() const
         {
             RECT rect = details::get_real_rect(m_hwnd);
             return point2i(rect.left, rect.top);
         }
 
-        bool closing() const { return m_closing; }
-        bool resizable() const { return m_style[window_style_bits::resizable]; }
-        bool undecorated() const { return m_style[window_style_bits::undecorated]; }
-        bool hidden() const { return m_style[window_style_bits::undecorated]; }
-        bool hide_mouse() const { return m_style[window_style_bits::hide_mouse]; }
-        bool trap_mouse() const { return m_style[window_style_bits::trap_mouse]; }
-        flagset<window_style_bits> style() const { return m_style; }
+        bool is_closing() const { return m_closing; }
+        bool is_resizable() const { return m_style[window_style_bits::resizable]; }
+        bool is_undecorated() const { return m_style[window_style_bits::undecorated]; }
+        bool is_hidden() const { return m_style[window_style_bits::undecorated]; }
+        bool is_hiding_mouse() const { return m_style[window_style_bits::hide_mouse]; }
+        bool is_trapping_mouse() const { return m_style[window_style_bits::trap_mouse]; }
+        flagset<window_style_bits> get_style() const { return m_style; }
         
-        std::string title() const
+        std::string get_title() const
         {
             int size = GetWindowTextLengthW(m_hwnd) + 1;
             std::wstring title(size, '\0');
@@ -315,7 +315,7 @@ namespace accel
             return std::move(m_events);
         }
 
-        native_handle_t platform_handle() const { return m_hwnd; }
+        native_handle_t get_platform_handle() const { return m_hwnd; }
 
         LRESULT _wndproc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
         {
