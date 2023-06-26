@@ -2,10 +2,10 @@
 #include <algorithm>
 
 #define UNICODE
+#define WINDOW_CLASS L"AccelWindow"
+
 #include <Windows.h>
 #include <windowsx.h>
-
-#define WINDOW_CLASS TEXT("AccelWindow")
 
 namespace accel
 {
@@ -24,7 +24,7 @@ namespace accel
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wcast-function-type"
 #endif
-            static api_call get_rect = reinterpret_cast<api_call>(GetProcAddress(LoadLibrary(TEXT("dwmapi.dll")), "DwmGetWindowAttribute"));
+            static api_call get_rect = reinterpret_cast<api_call>(GetProcAddress(LoadLibraryW(L"dwmapi.dll"), "DwmGetWindowAttribute"));
 #ifndef _MSC_VER
 #pragma GCC diagnostic pop
 #endif
@@ -56,30 +56,6 @@ namespace accel
         }
 
         static LRESULT CALLBACK wndproc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam);
-
-        static std::string utf8_encode(const std::wstring& wstr)
-        {
-            if (wstr.empty())
-                return std::string();
-
-            int size = WideCharToMultiByte(CP_UTF8, 0, wstr.data(), static_cast<int>(wstr.size()), NULL, 0, NULL, NULL);
-            std::string conv(size, 0);
-            WideCharToMultiByte(CP_UTF8, 0, wstr.data(), static_cast<int>(wstr.size()), conv.data(), size, NULL, NULL);
-
-            return conv;
-        }
-
-        static std::wstring utf8_decode(const std::string& str)
-        {
-            if (str.empty())
-                return std::wstring();
-
-            int size = MultiByteToWideChar(CP_UTF8, 0, str.data(), static_cast<int>(str.size()), NULL, 0);
-            std::wstring conv(size, 0);
-            MultiByteToWideChar(CP_UTF8, 0, &str[0], static_cast<int>(str.size()), conv.data(), size);
-
-            return conv;
-        }
     }
 
     class window
@@ -90,36 +66,30 @@ namespace accel
             m_hwnd(nullptr),
             m_scroll_amount(0)
         {
-            static HINSTANCE hinstance = GetModuleHandle(nullptr);
+            static HINSTANCE hinstance = GetModuleHandleW(nullptr);
             static bool initialized = false;
             if (!initialized)
             {
-                WNDCLASS cls{};
+                WNDCLASSW cls{};
                 cls.style = CS_OWNDC | CS_HREDRAW | CS_VREDRAW;
                 cls.lpszClassName = WINDOW_CLASS;
                 cls.lpfnWndProc = &details::wndproc;
-                cls.hInstance = GetModuleHandle(NULL);
+                cls.hInstance = hinstance;
                 cls.hbrBackground = reinterpret_cast<HBRUSH>(GetStockObject(BLACK_BRUSH));
-                cls.hCursor = LoadCursor(NULL, IDC_ARROW);
-                if (!RegisterClass(&cls))
+                cls.hCursor = LoadCursorW(NULL, IDC_ARROW);
+                if (!RegisterClassW(&cls))
                     throw std::runtime_error("Failed to register window class.");
 
                 initialized = true;
             }
 
-            TCHAR name[KL_NAMELENGTH];
-            GetKeyboardLayoutName(name);
-            m_layout = LoadKeyboardLayout(TEXT("00000409"), KLF_NOTELLSHELL);
-            LoadKeyboardLayout(name, KLF_ACTIVATE);
-
-            std::wstring title = details::utf8_decode(params.title);
-            m_hwnd = CreateWindow(WINDOW_CLASS, title.data(), WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, params.size.width(), params.size.height(), nullptr, nullptr, hinstance, reinterpret_cast<LPVOID>(this));
+            m_hwnd = CreateWindowW(WINDOW_CLASS, params.title.to_wstring().c_str(), WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, params.width, params.height, nullptr, nullptr, hinstance, reinterpret_cast<LPVOID>(this));
             if (!m_hwnd)
                 throw std::runtime_error("Failed to create window.");
 
             ShowWindow(m_hwnd, SW_NORMAL);
             set_style(params.style);
-            set_size(params.size);
+            set_size(params.width, params.height);
         }
 
         ~window()
@@ -134,31 +104,42 @@ namespace accel
         window(window&&) = default;
         window& operator=(window&&) = default;
 
-        size2u get_client_size() const
+        unsigned int get_client_width() const
         {
             RECT rect;
             GetClientRect(m_hwnd, &rect);
-            return size2u(static_cast<unsigned>(rect.right - rect.left), static_cast<unsigned>(rect.bottom - rect.top));
+            return static_cast<unsigned int>(rect.right - rect.left);
         }
 
-        size2u get_size() const
+        unsigned int get_client_height() const
         {
-            RECT rect = details::get_real_rect(m_hwnd);
-            auto width = (std::max)(rect.right - rect.left, LONG(0));
-            auto height = (std::max)(rect.bottom - rect.top, LONG(0));
-            return size2u(static_cast<unsigned>(width), static_cast<unsigned>(height));
+            RECT rect;
+            GetClientRect(m_hwnd, &rect);
+            return static_cast<unsigned int>(rect.bottom - rect.top);
         }
 
-        rectanglei get_rect() const
+        unsigned int get_width() const
         {
             RECT rect = details::get_real_rect(m_hwnd);
-            return rectanglei(rect.top, rect.left, rect.bottom, rect.right);
+            return static_cast<unsigned int>((std::max)(rect.right - rect.left, LONG(0)));
         }
 
-        point2i get_position() const
+        unsigned int get_height() const
         {
             RECT rect = details::get_real_rect(m_hwnd);
-            return point2i(rect.left, rect.top);
+            return static_cast<unsigned int>((std::max)(rect.bottom - rect.top, LONG(0)));
+        }
+
+        int get_x() const
+        {
+            RECT rect = details::get_real_rect(m_hwnd);
+            return rect.left;
+        }
+
+        int get_y() const
+        {
+            RECT rect = details::get_real_rect(m_hwnd);
+            return rect.left;
         }
 
         bool is_closing() const { return m_closing; }
@@ -169,21 +150,20 @@ namespace accel
         bool is_trapping_mouse() const { return m_style[window_style_bits::trap_mouse]; }
         flagset<window_style_bits> get_style() const { return m_style; }
         
-        std::string get_title() const
+        utf8::string get_title() const
         {
             int size = GetWindowTextLengthW(m_hwnd) + 1;
             std::wstring title(size, '\0');
-            GetWindowTextW(m_hwnd, title.data(), static_cast<int>(title.size()));
-            return details::utf8_encode(title);
+            GetWindowTextW(m_hwnd, &title[0], size);
+            return utf8::string(title);
         }
 
-        void set_title(const std::string& title)
+        void set_title(const utf8::string& title)
         {
-            auto wide_title = details::utf8_decode(title);
-            SetWindowTextW(m_hwnd, wide_title.c_str());
+            SetWindowTextW(m_hwnd, title.to_wstring().c_str());
         }
 
-        void set_position(const point2i& position)
+        void set_position(int x, int y)
         {
             RECT excluding_shadow = details::get_real_rect(m_hwnd);
 
@@ -192,13 +172,13 @@ namespace accel
 
             int shadow_left = including_shadow.left - excluding_shadow.left;
             int shadow_top = including_shadow.top - excluding_shadow.top;
-            SetWindowPos(m_hwnd, 0, position.x() + shadow_left, position.y() + shadow_top, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
+            SetWindowPos(m_hwnd, 0, x + shadow_left, y + shadow_top, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
 
             if (m_style & window_style_bits::trap_mouse)
                 details::trap_mouse(m_hwnd);
         }
 
-        void set_size(const size2u& size)
+        void set_size(unsigned int width, unsigned int height)
         {
             RECT excluding_shadow = details::get_real_rect(m_hwnd);
 
@@ -207,18 +187,18 @@ namespace accel
 
             int shadow_width = (including_shadow.right - excluding_shadow.right) + (excluding_shadow.left - including_shadow.left);
             int shadow_height = (including_shadow.bottom - excluding_shadow.bottom) + (excluding_shadow.top - including_shadow.top);
-            SetWindowPos(m_hwnd, 0, 0, 0, size.width() + shadow_width, size.height() + shadow_height, SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE);
+            SetWindowPos(m_hwnd, 0, 0, 0, width + shadow_width, height + shadow_height, SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE);
 
             if (m_style & window_style_bits::trap_mouse)
                 details::trap_mouse(m_hwnd);
         }
 
 
-        void set_client_size(const size2u& size)
+        void set_client_size(unsigned int width, unsigned int height)
         {
             RECT rect{};
-            rect.right = size.width();
-            rect.bottom = size.height();
+            rect.right = width;
+            rect.bottom = height;
 
             DWORD style = GetWindowLong(m_hwnd, GWL_STYLE);
             AdjustWindowRect(&rect, style, FALSE);
@@ -229,35 +209,35 @@ namespace accel
                 details::trap_mouse(m_hwnd);
         }
 
-        void set_rect(const rectanglei& rect)
+        void set_rect(int x, int y, unsigned int width, unsigned int height)
         {
-            set_position(rect.top_left());
-            set_size(size2u(static_cast<unsigned>(rect.size().width()), static_cast<unsigned>(rect.size().height())));
+            set_position(x, y);
+            set_size(width, height);
         }
 
         void set_resizable(bool state)
         {
-            LONG_PTR style = GetWindowLongPtr(m_hwnd, GWL_STYLE);
+            LONG_PTR style = GetWindowLongPtrW(m_hwnd, GWL_STYLE);
 
             if (state)
                 style |= WS_THICKFRAME | WS_MAXIMIZEBOX;
             else
                 style &= ~(WS_THICKFRAME | WS_MAXIMIZEBOX);
 
-            SetWindowLongPtr(m_hwnd, GWL_STYLE, style);
+            SetWindowLongPtrW(m_hwnd, GWL_STYLE, style);
             m_style.set(window_style_bits::resizable, state);
         }
 
         void set_undecorated(bool state)
         {
-            LONG_PTR style = GetWindowLongPtr(m_hwnd, GWL_STYLE);
+            LONG_PTR style = GetWindowLongPtrW(m_hwnd, GWL_STYLE);
 
             if (state)
                 style &= ~(WS_CAPTION | WS_MINIMIZEBOX);
             else
                 style |= WS_CAPTION | WS_MINIMIZEBOX;
 
-            SetWindowLongPtr(m_hwnd, GWL_STYLE, style);
+            SetWindowLongPtrW(m_hwnd, GWL_STYLE, style);
             m_style.set(window_style_bits::undecorated, state);
         }
 
@@ -303,14 +283,14 @@ namespace accel
         void pump_events()
         {
             MSG msg;
-            while (PeekMessage(&msg, m_hwnd, 0, 0, PM_REMOVE))
+            while (PeekMessageW(&msg, m_hwnd, 0, 0, PM_REMOVE))
             {
                 TranslateMessage(&msg);
-                DispatchMessage(&msg);
+                DispatchMessageW(&msg);
             }
         }
 
-        std::vector<any_event> poll_events()
+        std::vector<generic_event> poll_events()
         {
             return std::move(m_events);
         }
@@ -342,7 +322,7 @@ namespace accel
                     case VK_PRIOR:
                     case VK_DELETE:
                     case VK_SHIFT:
-                        keycode = MapVirtualKeyEx(scancode, MAPVK_VSC_TO_VK_EX, m_layout);
+                        keycode = MapVirtualKeyExW(scancode, MAPVK_VSC_TO_VK_EX, m_layout);
                         break;
                     }
 
@@ -378,7 +358,7 @@ namespace accel
                     else
                         is_mouse_down = false;
 
-                    m_events.emplace_back(mouse_click_event{ is_mouse_down, button, point2i(x_pos, y_pos) });
+                    m_events.emplace_back(mouse_click_event{ is_mouse_down, button, x_pos, y_pos });
                     break;
                 }
 
@@ -405,15 +385,16 @@ namespace accel
 
                 case WM_MOUSEMOVE:
                 {
-                    point2i mouse_position(GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam));
-                    m_events.emplace_back(mouse_move_event{ mouse_position });
+                    int mouse_x = GET_X_LPARAM(lparam);
+                    int mouse_y = GET_Y_LPARAM(lparam);
+                    m_events.emplace_back(mouse_move_event{ mouse_x, mouse_y });
                     break;
                 }
 
                 case WM_MOUSEWHEEL:
                 {
                     UINT lines_per_tick = 0;
-                    SystemParametersInfo(SPI_GETWHEELSCROLLLINES, 0, &lines_per_tick, 0);
+                    SystemParametersInfoW(SPI_GETWHEELSCROLLLINES, 0, &lines_per_tick, 0);
 
                     m_scroll_amount += GET_WHEEL_DELTA_WPARAM(wparam);
 
@@ -427,8 +408,9 @@ namespace accel
 
                     if (scroll_ticks != 0)
                     {
-                        point2i mouse_position(GET_X_LPARAM(lparam), GET_Y_LPARAM(lparam));
-                        m_events.emplace_back(mouse_scroll_event{ mouse_position, scroll_ticks * static_cast<int>(lines_per_tick) });
+                        int mouse_x = GET_X_LPARAM(lparam);
+                        int mouse_y = GET_Y_LPARAM(lparam);
+                        m_events.emplace_back(mouse_scroll_event{ mouse_x, mouse_y, scroll_ticks * static_cast<int>(lines_per_tick) });
                     }
                     break;
                 }
@@ -450,16 +432,19 @@ namespace accel
                         RECT client_rect;
                         GetClientRect(hwnd, &client_rect);
 
-                        size2u size(static_cast<unsigned>(rect.right - rect.left), static_cast<unsigned>(rect.bottom - rect.top));
-                        size2u client_size(static_cast<unsigned>(client_rect.right - client_rect.left), static_cast<unsigned>(client_rect.bottom - client_rect.top));
+                        unsigned int width = static_cast<unsigned>(rect.right - rect.left);
+                        unsigned int height = static_cast<unsigned>(rect.bottom - rect.top);
+                        unsigned int client_width = static_cast<unsigned>(client_rect.right - client_rect.left);
+                        unsigned int client_height = static_cast<unsigned>(client_rect.bottom - client_rect.top);
 
-                        m_events.emplace_back(resize_event{ size, client_size });
+                        m_events.emplace_back(resize_event{ width, height, client_width, client_height });
                         m_resizing = false;
                     }
                     break;
                 }
             }
-            return DefWindowProc(hwnd, msg, wparam, lparam);
+
+            return DefWindowProcW(hwnd, msg, wparam, lparam);
         }
 
     private:
@@ -469,7 +454,7 @@ namespace accel
         bool m_resizing;
         int m_scroll_amount;
         flagset<window_style_bits> m_style;
-        std::vector<any_event> m_events;
+        std::vector<generic_event> m_events;
     };
 
     namespace details
@@ -481,7 +466,7 @@ namespace accel
 
             if (msg == WM_CREATE)
             {
-                CREATESTRUCT* cs = reinterpret_cast<CREATESTRUCT*>(lparam);
+                CREATESTRUCTW* cs = reinterpret_cast<CREATESTRUCTW*>(lparam);
                 ptr = reinterpret_cast<window*>(cs->lpCreateParams);
                 window_map[hwnd] = ptr;
             }
@@ -493,6 +478,4 @@ namespace accel
             return ptr->_wndproc(hwnd, msg, wparam, lparam);
         }
     }
-
-
 }

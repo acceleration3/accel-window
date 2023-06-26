@@ -1,16 +1,13 @@
 #ifndef ACCEL_WINDOW_HEADER
 #define ACCEL_WINDOW_HEADER
 
-#include <cstdint>
-
-#include <string>
-#include <memory>
 #include <vector>
-#include <variant>
+
+#include <cstdint>
 
 #include <accel/macros>
 #include <accel/flagset>
-#include <accel/math>
+#include <accel/utf8>
 
 namespace accel
 {
@@ -27,17 +24,20 @@ namespace accel
 	{
 		bool is_mouse_down;
 		mouse_buttons button;
-		point2i position;
+		int x;
+		int y;
 	};
 
 	struct mouse_move_event
 	{
-		point2i position;
+		int x;
+		int y;
 	};
 
 	struct mouse_scroll_event
 	{
-		point2i position;
+		int x;
+		int y;
 		int scroll_lines;
 	};
 
@@ -50,17 +50,39 @@ namespace accel
 
 	struct resize_event
 	{
-		size2u size;
-		size2u client_size;
+		unsigned int width;
+		unsigned int height;
+		unsigned int client_width;
+		unsigned int client_height;
 	};
 
-	using any_event = std::variant<
-		mouse_click_event,
-		mouse_move_event,
-		mouse_scroll_event,
-		key_event,
-		resize_event
-	>;
+	enum class event_types
+	{
+		mouse_click,
+		mouse_move,
+		mouse_scroll,
+		key,
+		resize,
+	};
+
+	struct generic_event
+	{
+		event_types type;
+		union
+		{
+			mouse_click_event mouse_click;
+			mouse_move_event mouse_move;
+			mouse_scroll_event mouse_scroll;
+			key_event key;
+			resize_event resize;
+		};
+
+		generic_event(mouse_click_event&& click) : type(event_types::mouse_click), mouse_click(std::move(click)) {}
+		generic_event(mouse_move_event&& move) : type(event_types::mouse_move), mouse_move(std::move(move)) {}
+		generic_event(mouse_scroll_event&& scroll) : type(event_types::mouse_scroll), mouse_scroll(std::move(scroll)) {}
+		generic_event(key_event&& key) : type(event_types::key), key(std::move(key)) {}
+		generic_event(resize_event&& resize) : type(event_types::resize), resize(std::move(resize)) {}
+	};
 
 	enum class window_style_bits
 	{
@@ -74,8 +96,9 @@ namespace accel
 
 	struct window_create_params
 	{
-		std::string title;
-		size2u size;
+		utf8::string title;
+		unsigned int width;
+		unsigned int height;
 		flagset<window_style_bits> style;
 	};
 }
