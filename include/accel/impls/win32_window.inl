@@ -83,13 +83,12 @@ namespace accel
                 initialized = true;
             }
 
-            m_hwnd = CreateWindowW(WINDOW_CLASS, params.title.to_wstring().c_str(), WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, params.width, params.height, nullptr, nullptr, hinstance, reinterpret_cast<LPVOID>(this));
+            m_hwnd = CreateWindowW(WINDOW_CLASS, params.title.to_wstring().c_str(), WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, params.client_width, params.client_height, nullptr, nullptr, hinstance, reinterpret_cast<LPVOID>(this));
             if (!m_hwnd)
                 throw std::runtime_error("Failed to create window.");
 
-            ShowWindow(m_hwnd, SW_NORMAL);
             set_style(params.style);
-            set_client_size(params.width, params.height);
+            set_client_size(params.client_width, params.client_height);
         }
 
         ~window()
@@ -193,7 +192,6 @@ namespace accel
                 details::trap_mouse(m_hwnd);
         }
 
-
         void set_client_size(unsigned int width, unsigned int height)
         {
             RECT rect{};
@@ -280,7 +278,8 @@ namespace accel
             set_trap_mouse(style[window_style_bits::trap_mouse]);
         }
 
-        void pump_events()
+        template<typename ItT>
+        void poll_events(ItT position_it)
         {
             MSG msg;
             while (PeekMessageW(&msg, m_hwnd, 0, 0, PM_REMOVE))
@@ -288,11 +287,10 @@ namespace accel
                 TranslateMessage(&msg);
                 DispatchMessageW(&msg);
             }
-        }
 
-        std::vector<generic_event> poll_events()
-        {
-            return std::move(m_events);
+            std::copy(m_events.cbegin(), m_events.cend(), position_it);
+            
+            m_events.clear();
         }
 
         native_handle_t get_platform_handle() const { return m_hwnd; }
@@ -308,7 +306,7 @@ namespace accel
                 {
                     unsigned int scancode = (lparam >> 16) & 0xFF;
                     unsigned int extended = (lparam >> 24) & 0x1;
-                    bool is_key_down = (msg == WM_KEYDOWN || msg == WM_SYSKEYDOWN);
+                    
 
                     WPARAM keycode = wparam;
                     switch (keycode)
@@ -326,7 +324,10 @@ namespace accel
                         break;
                     }
 
-                    m_events.emplace_back(key_event{ is_key_down, static_cast<int>(keycode), static_cast<int>(lparam & 0xFFFF) });
+                    if (msg == WM_KEYDOWN || msg == WM_SYSKEYDOWN)
+                        m_events.emplace_back(key_down_event{ static_cast<unsigned int>(keycode) });
+                    else
+                        m_events.emplace_back(key_up_event{ static_cast<unsigned int>(keycode) });
                     break;
                 }
 
@@ -352,13 +353,11 @@ namespace accel
                     else
                         button = GET_XBUTTON_WPARAM(wparam) == XBUTTON1 ? mouse_buttons::backwards : mouse_buttons::forwards;
 
-                    bool is_mouse_down;
                     if (msg == WM_LBUTTONDOWN || msg == WM_MBUTTONDOWN || msg == WM_RBUTTONDOWN || msg == WM_XBUTTONDOWN)
-                        is_mouse_down = true;
+                        m_events.emplace_back(mouse_down_event{ button, x_pos, y_pos });
                     else
-                        is_mouse_down = false;
-
-                    m_events.emplace_back(mouse_click_event{ is_mouse_down, button, x_pos, y_pos });
+                        m_events.emplace_back(mouse_up_event{ button, x_pos, y_pos });
+                    
                     break;
                 }
 
@@ -398,20 +397,16 @@ namespace accel
 
                     m_scroll_amount += GET_WHEEL_DELTA_WPARAM(wparam);
 
+                    int mouse_x = GET_X_LPARAM(lparam);
+                    int mouse_y = GET_Y_LPARAM(lparam);
+
                     bool is_negative = m_scroll_amount < 0;
-                    int scroll_ticks = 0;
                     while (std::abs(m_scroll_amount) >= WHEEL_DELTA)
                     {
-                        scroll_ticks += is_negative ? -1 : 1;
+                        m_events.emplace_back(mouse_scroll_event{ mouse_x, mouse_y, is_negative ? mouse_scroll_directions::down : mouse_scroll_directions::up });
                         m_scroll_amount += is_negative ? WHEEL_DELTA : -WHEEL_DELTA;
                     }
 
-                    if (scroll_ticks != 0)
-                    {
-                        int mouse_x = GET_X_LPARAM(lparam);
-                        int mouse_y = GET_Y_LPARAM(lparam);
-                        m_events.emplace_back(mouse_scroll_event{ mouse_x, mouse_y, scroll_ticks * static_cast<int>(lines_per_tick) });
-                    }
                     break;
                 }
 
@@ -461,21 +456,23 @@ namespace accel
     {
         static LRESULT CALLBACK wndproc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
         {
-            static std::unordered_map<HWND, window*> window_map;
-            window* ptr = nullptr;
+            accel::window* ptr = nullptr;
 
             if (msg == WM_CREATE)
             {
                 CREATESTRUCTW* cs = reinterpret_cast<CREATESTRUCTW*>(lparam);
-                ptr = reinterpret_cast<window*>(cs->lpCreateParams);
-                window_map[hwnd] = ptr;
+                ptr = reinterpret_cast<accel::window*>(cs->lpCreateParams);
+                SetWindowLongPtrW(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(ptr));
             }
             else
             {
-                ptr = window_map[hwnd];
+                ptr = reinterpret_cast<accel::window*>(GetWindowLongPtr(hwnd, GWLP_USERDATA));
             }
 
-            return ptr->_wndproc(hwnd, msg, wparam, lparam);
+            if (ptr)
+                return ptr->_wndproc(hwnd, msg, wparam, lparam);
+            else
+                return DefWindowProcW(hwnd, msg, wparam, lparam);
         }
     }
 }
