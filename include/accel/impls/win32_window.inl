@@ -466,7 +466,7 @@ namespace accel
             }
             else
             {
-                ptr = reinterpret_cast<accel::window*>(GetWindowLongPtr(hwnd, GWLP_USERDATA));
+                ptr = reinterpret_cast<accel::window*>(GetWindowLongPtrW(hwnd, GWLP_USERDATA));
             }
 
             if (ptr)
