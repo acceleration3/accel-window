@@ -89,7 +89,7 @@ namespace accel
 
             ShowWindow(m_hwnd, SW_NORMAL);
             set_style(params.style);
-            set_size(params.width, params.height);
+            set_client_size(params.width, params.height);
         }
 
         ~window()

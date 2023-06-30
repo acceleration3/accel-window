@@ -20,9 +20,21 @@ namespace accel
 		forwards
 	};
 
-	struct mouse_click_event
+	enum class mouse_scroll_directions
 	{
-		bool is_mouse_down;
+		up,
+		down
+	};
+
+	struct mouse_down_event
+	{
+		mouse_buttons button;
+		int x;
+		int y;
+	};
+
+	struct mouse_up_event
+	{
 		mouse_buttons button;
 		int x;
 		int y;
@@ -38,14 +50,17 @@ namespace accel
 	{
 		int x;
 		int y;
-		int scroll_lines;
+		mouse_scroll_directions direction;
 	};
 
-	struct key_event
+	struct key_down_event
 	{
-		bool is_key_down;
-		int keycode;
-		int repeat;
+		unsigned int keycode;
+	};
+
+	struct key_up_event
+	{
+		unsigned int keycode;
 	};
 
 	struct resize_event
@@ -58,10 +73,12 @@ namespace accel
 
 	enum class event_types
 	{
-		mouse_click,
+		mouse_up,
+		mouse_down,
 		mouse_move,
 		mouse_scroll,
-		key,
+		key_up,
+		key_down,
 		resize,
 	};
 
@@ -70,17 +87,21 @@ namespace accel
 		event_types type;
 		union
 		{
-			mouse_click_event mouse_click;
+			mouse_up_event mouse_up;
+			mouse_down_event mouse_down;
 			mouse_move_event mouse_move;
 			mouse_scroll_event mouse_scroll;
-			key_event key;
+			key_up_event key_up;
+			key_down_event key_down;
 			resize_event resize;
 		};
 
-		generic_event(mouse_click_event&& click) : type(event_types::mouse_click), mouse_click(std::move(click)) {}
+		generic_event(mouse_up_event&& mouse_up) : type(event_types::mouse_up), mouse_up(std::move(mouse_up)) {}
+		generic_event(mouse_down_event&& mouse_down) : type(event_types::mouse_down), mouse_down(std::move(mouse_down)) {}
 		generic_event(mouse_move_event&& move) : type(event_types::mouse_move), mouse_move(std::move(move)) {}
 		generic_event(mouse_scroll_event&& scroll) : type(event_types::mouse_scroll), mouse_scroll(std::move(scroll)) {}
-		generic_event(key_event&& key) : type(event_types::key), key(std::move(key)) {}
+		generic_event(key_up_event&& key_up) : type(event_types::key_up), key_up(std::move(key_up)) {}
+		generic_event(key_down_event&& key_down) : type(event_types::key_down), key_down(std::move(key_down)) {}
 		generic_event(resize_event&& resize) : type(event_types::resize), resize(std::move(resize)) {}
 	};
 
@@ -97,14 +118,20 @@ namespace accel
 	struct window_create_params
 	{
 		utf8::string title;
-		unsigned int width;
-		unsigned int height;
+		unsigned int client_width;
+		unsigned int client_height;
 		flagset<window_style_bits> style;
 	};
 }
 
-#ifdef PLATFORM_WINDOWS
+#if defined(PLATFORM_WINDOWS)
 	#include "impls/win32_window.inl"
+#elif defined(PLATFORM_LINUX)
+	#ifdef USE_X11
+		#include "impls/x11_window.inl"
+	#else
+		#include "impls/wayland_window.inl"
+	#endif
 #else
 	#error "No window implementation for this platform."
 #endif
