@@ -1,8 +1,8 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.16)
 
 project(accel-window CXX)
 
-option(USE_X11 "Use X11 instead of wayland." ON)
+option(USE_X11 "Use X11 instead of wayland." OFF)
 
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_STANDARD 11)
@@ -19,6 +19,17 @@ set(ADDITIONAL_DEFINES "")
 if(UNIX AND USE_X11)
     set(ADDITIONAL_DEFINES "USE_X11")
     list(APPEND ADDITIONAL_LIBRARIES X11)
+else()
+    find_package(ECM REQUIRED NO_MODULE)
+    list(APPEND CMAKE_MODULE_PATH ${ECM_MODULE_PATH})
+
+    find_package(Wayland REQUIRED COMPONENTS Client)
+    find_package(WaylandScanner REQUIRED)
+    find_package(WaylandProtocols REQUIRED)
+
+    add_subdirectory(protocols)
+
+    list(APPEND ADDITIONAL_LIBRARIES Wayland::Client wayland-protocols)
 endif()
 
 include(cmake/FindModule.cmake)

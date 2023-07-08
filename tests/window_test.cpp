@@ -1,4 +1,6 @@
 ﻿#include <iostream>
+#include <thread>
+
 
 #include <accel/window>
 
@@ -32,6 +34,8 @@ int main(int argc, char* argv[])
                     break;
             }
         }
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(16));
     }
     
     return 0;
